@@ -55,7 +55,7 @@ export default function OtpVerify() {
       </div>
 
 
-      <style jsx>{`
+      <style>{`
         .otp-page {
           min-height: 100vh;
           width: 100vw;

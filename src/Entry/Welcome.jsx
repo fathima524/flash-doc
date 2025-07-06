@@ -15,7 +15,7 @@ export default function Welcome() {
 
       </div>
 
-      <style jsx>{`
+      <style>{`
         .welcome-page {
           min-height: 100vh;
           width: 100vw;

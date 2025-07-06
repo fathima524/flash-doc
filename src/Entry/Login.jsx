@@ -88,7 +88,7 @@ export default function Login() {
         </p>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .login-page {
           min-height: 100vh;
           width: 100vw;
