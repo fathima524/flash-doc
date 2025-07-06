@@ -6,6 +6,8 @@ import CompleteProfile from "./Entry/Complete-profile";
 import Navbar from "./Reuseable/Navbar";
 import Footer from "./Reuseable/Footer";
 import Dashboard from "./Dashboard/Dashboard";
+import Flashcard from "./Flashcard/Flashcard";
+import Streaks from "./Flashcard/Streaks";
 import Pricing from "./Subscription/Pricing";
 import PaymentCheckout from "./Subscription/Payment-checkout";
 import Thanks from "./Subscription/Thanks";
@@ -20,11 +22,11 @@ function App() {
       <Route path="/navbar" element={<Navbar />} />
       <Route path="/footer" element={<Footer />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/flashcard" element={<Flashcard />} />
+      <Route path="/streaks" element={<Streaks />} />
       <Route path="/pricing" element={<Pricing />} />
-<Route path="/payment-checkout" element={<PaymentCheckout />} />
-<Route path="/thanks" element={<Thanks />} />
-    
-
+      <Route path="/payment-checkout" element={<PaymentCheckout />} />
+      <Route path="/thanks" element={<Thanks />} />
     </Routes>
   );
 }

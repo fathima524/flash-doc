@@ -13,6 +13,10 @@ export default function CompleteProfile() {
     if (name.trim() && year) {
       console.log('Profile saved:', { name, year });
 
+      // Save user name to localStorage
+      localStorage.setItem("userName", name.trim());
+      localStorage.setItem("userYear", year);
+
       // Navigate to Dashboard
       navigate("/dashboard");
     } else {
@@ -64,7 +68,7 @@ export default function CompleteProfile() {
         .profile-page {
           min-height: 100vh;
           width: 100vw;
-          background: linear-gradient(135deg, #3c4b5c 0%, #5a6b7a 40%, #8b9da9 70%, #e8eaec 100%);
+          background: linear-gradient(135deg, #27374d 0%, #526d82 40%, #9db2bf 70%, #dde6ed 100%);
           background-attachment: fixed;
           background-repeat: no-repeat;
           background-size: cover;
@@ -84,14 +88,14 @@ export default function CompleteProfile() {
           padding: 50px;
           width: 100%;
           max-width: 450px;
-          box-shadow: 0 20px 40px rgba(60, 75, 92, 0.3), 0 8px 16px rgba(60, 75, 92, 0.2);
+          box-shadow: 0 20px 40px rgba(39, 55, 77, 0.3), 0 8px 16px rgba(39, 55, 77, 0.2);
           border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .profile-title {
           font-size: 28px;
           font-weight: 700;
-          color: #3c4b5c;
+          color: #27374d;
           text-align: center;
           margin-bottom: 30px;
           letter-spacing: -0.5px;
@@ -106,7 +110,7 @@ export default function CompleteProfile() {
         .profile-label {
           font-size: 14px;
           font-weight: 600;
-          color: #5a6b7a;
+          color: #526d82;
           margin-bottom: 8px;
           display: block;
         }
@@ -114,10 +118,10 @@ export default function CompleteProfile() {
         .profile-input {
           width: 100%;
           padding: 16px;
-          border: 2px solid #e8eaec;
+          border: 2px solid #dde6ed;
           border-radius: 12px;
           font-size: 16px;
-          color: #3c4b5c;
+          color: #27374d;
           background-color: rgba(255, 255, 255, 0.8);
           transition: all 0.3s ease;
           outline: none;
@@ -126,15 +130,15 @@ export default function CompleteProfile() {
         }
 
         .profile-input:focus {
-          border-color: #5a6b7a;
+          border-color: #526d82;
           background-color: rgba(255, 255, 255, 1);
-          box-shadow: 0 0 0 3px rgba(90, 107, 122, 0.1);
+          box-shadow: 0 0 0 3px rgba(82, 109, 130, 0.1);
         }
 
         .profile-select {
           cursor: pointer;
           appearance: none;
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%235a6b7a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23526d82' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
           background-position: right 12px center;
           background-repeat: no-repeat;
           background-size: 16px;
@@ -142,13 +146,13 @@ export default function CompleteProfile() {
         }
 
         .profile-select:focus {
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233c4b5c' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2327374d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
         }
 
         .profile-button {
           width: 100%;
           padding: 16px;
-          background: linear-gradient(135deg, #3c4b5c 0%, #5a6b7a 100%);
+          background: linear-gradient(135deg, #27374d 0%, #526d82 100%);
           color: white;
           border: none;
           border-radius: 12px;
@@ -160,9 +164,9 @@ export default function CompleteProfile() {
         }
 
         .profile-button:hover {
-          background: linear-gradient(135deg, #2a3642 0%, #485460 100%);
+          background: linear-gradient(135deg, #1e2a3a 0%, #455a6b 100%);
           transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(60, 75, 92, 0.4);
+          box-shadow: 0 8px 20px rgba(39, 55, 77, 0.4);
         }
 
         .profile-button:active {
