@@ -1,10 +1,12 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../Reuseable/Navbar";
 import Footer from "../Reuseable/Footer";
 
 export default function Pricing() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { fromFreeTrial, sessionData, message } = location.state || {};
 
   const handleSelectPlan = (plan) => {
     console.log(`Selected plan: ${plan}`);
@@ -28,12 +30,54 @@ export default function Pricing() {
   const titleStyle = {
     color: '#2c3e50',
     fontSize: '3rem',
-    marginBottom: '3rem',
+    marginBottom: fromFreeTrial ? '1rem' : '3rem',
     textAlign: 'center',
     fontWeight: '700',
     textShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
     zIndex: 1,
     letterSpacing: '-0.02em'
+  };
+
+  const messageStyle = {
+    background: 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)',
+    color: 'white',
+    padding: '1.5rem 2rem',
+    borderRadius: '16px',
+    textAlign: 'center',
+    marginBottom: '2rem',
+    fontSize: '1.1rem',
+    fontWeight: '600',
+    boxShadow: '0 10px 30px rgba(39, 174, 96, 0.3)',
+    maxWidth: '600px'
+  };
+
+  const sessionStatsStyle = {
+    background: 'rgba(255, 255, 255, 0.9)',
+    padding: '1.5rem',
+    borderRadius: '12px',
+    marginBottom: '2rem',
+    display: 'flex',
+    justifyContent: 'space-around',
+    gap: '1rem',
+    maxWidth: '500px',
+    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.1)'
+  };
+
+  const statItemStyle = {
+    textAlign: 'center'
+  };
+
+  const statNumberStyle = {
+    fontSize: '2rem',
+    fontWeight: '700',
+    color: '#27374d',
+    marginBottom: '0.5rem'
+  };
+
+  const statLabelStyle = {
+    fontSize: '0.9rem',
+    color: '#526d82',
+    fontWeight: '500'
   };
 
   const plansGridStyle = {
@@ -110,6 +154,34 @@ export default function Pricing() {
     <>
       <Navbar />
       <div style={containerStyle}>
+        {fromFreeTrial && (
+          <>
+            <div style={messageStyle}>
+              {message || "Great job! Upgrade to access unlimited questions and all subjects."}
+            </div>
+            {sessionData && (
+              <div style={sessionStatsStyle}>
+                <div style={statItemStyle}>
+                  <div style={statNumberStyle}>{sessionData.score}</div>
+                  <div style={statLabelStyle}>Correct</div>
+                </div>
+                <div style={statItemStyle}>
+                  <div style={statNumberStyle}>{sessionData.totalQuestions}</div>
+                  <div style={statLabelStyle}>Total</div>
+                </div>
+                <div style={statItemStyle}>
+                  <div style={statNumberStyle}>{Math.floor(sessionData.timeSpent / 60)}</div>
+                  <div style={statLabelStyle}>Minutes</div>
+                </div>
+                <div style={statItemStyle}>
+                  <div style={statNumberStyle}>{sessionData.streak}</div>
+                  <div style={statLabelStyle}>Streak</div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        
         <h1 style={titleStyle}>Choose Your Plan</h1>
         <div style={plansGridStyle}>
           <div

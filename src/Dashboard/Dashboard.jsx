@@ -47,7 +47,8 @@ function Dashboard() {
     navigate("/flashcard", { 
       state: { 
         subject: selectedSubject, 
-        difficulty: selectedDifficulty 
+        difficulty: selectedDifficulty,
+        mode: "premium"
       } 
     });
   };
@@ -56,7 +57,19 @@ function Dashboard() {
     navigate("/flashcard", { 
       state: { 
         subject: "mixed", 
-        difficulty: difficulty 
+        difficulty: difficulty,
+        mode: "free_trial",
+        questionLimit: 5
+      } 
+    });
+  };
+
+  const handleChallengeMode = () => {
+    navigate("/flashcard", { 
+      state: { 
+        subject: "challenge", 
+        difficulty: "mixed",
+        mode: "challenge"
       } 
     });
   };
@@ -244,6 +257,20 @@ function Dashboard() {
     letterSpacing: '0.5px'
   };
 
+  const challengeCardStyle = {
+    ...cardStyle,
+    background: 'linear-gradient(135deg, rgba(231, 76, 60, 0.1) 0%, rgba(192, 57, 43, 0.1) 100%)',
+    border: '2px solid rgba(231, 76, 60, 0.3)',
+    textAlign: 'center'
+  };
+
+  const challengeButtonStyle = {
+    ...buttonStyle,
+    background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+    fontSize: '1rem',
+    padding: '1rem 1.5rem'
+  };
+
   return (
     <>
       <Navbar />
@@ -258,7 +285,7 @@ function Dashboard() {
               Welcome back, {userName || "Student"}! 👋
             </h1>
             <p style={subtitleStyle}>
-              Ready to ace your MBBS exams? Let's continue your learning journey!
+              Ready to ace your MBBS exams? Try our free questions or continue your learning journey!
             </p>
             <div style={{
               display: 'flex',
@@ -279,7 +306,7 @@ function Dashboard() {
                   e.target.style.transform = 'translateY(0)';
                 }}
               >
-                Quick Easy
+                Try Easy (Free)
               </button>
               <button 
                 style={quickActionButtonStyle}
@@ -293,7 +320,7 @@ function Dashboard() {
                   e.target.style.transform = 'translateY(0)';
                 }}
               >
-                Quick Medium
+                Try Medium (Free)
               </button>
               <button 
                 style={quickActionButtonStyle}
@@ -307,7 +334,7 @@ function Dashboard() {
                   e.target.style.transform = 'translateY(0)';
                 }}
               >
-                Quick Hard
+                Try Hard (Free)
               </button>
             </div>
           </div>
@@ -315,7 +342,7 @@ function Dashboard() {
           {/* Subject Selection */}
           <div style={cardStyle}>
             <h3 style={sectionTitleStyle}>
-              📚 Study Session
+              📚 Premium Study Session
             </h3>
             <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#526d82', marginBottom: '0.5rem', display: 'block' }}>
               Choose Subject
@@ -360,7 +387,47 @@ function Dashboard() {
                 e.target.style.boxShadow = '0 4px 15px rgba(39, 55, 77, 0.3)';
               }}
             >
-              🚀 Start Studying
+              🚀 Start Premium Study
+            </button>
+            <div style={{
+              fontSize: '0.8rem',
+              color: '#9db2bf',
+              textAlign: 'center',
+              marginTop: '0.5rem',
+              fontStyle: 'italic'
+            }}>
+              Requires subscription
+            </div>
+          </div>
+
+          {/* Challenge Mode */}
+          <div style={challengeCardStyle}>
+            <h3 style={{...sectionTitleStyle, color: '#e74c3c'}}>
+              🎯 Challenge Yourself
+            </h3>
+            <p style={{
+              fontSize: '0.95rem',
+              color: '#c0392b',
+              marginBottom: '1.5rem',
+              lineHeight: '1.4'
+            }}>
+              Random questions from all subjects with mixed difficulty levels. Test your overall knowledge!
+            </p>
+            <button 
+              style={challengeButtonStyle}
+              onClick={handleChallengeMode}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #c0392b 0%, #a93226 100%)';
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 8px 25px rgba(231, 76, 60, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 15px rgba(39, 55, 77, 0.3)';
+              }}
+            >
+              🔥 Start Challenge
             </button>
           </div>
 

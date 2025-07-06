@@ -122,11 +122,11 @@ export default function Navbar() {
   };
 
   const menuItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: '🏠' },
-    { label: 'Study', path: '/flashcard', icon: '📚' },
-    { label: 'Streaks', path: '/streaks', icon: '🔥' },
-    { label: 'Pricing', path: '/pricing', icon: '💎' },
-    { label: 'Profile', path: '/complete-profile', icon: '👤' }
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Study', path: '/flashcard' },
+    { label: 'Streaks', path: '/streaks' },
+    { label: 'Pricing', path: '/pricing' },
+    { label: 'Profile', path: '/complete-profile' }
   ];
 
   return (
@@ -242,7 +242,6 @@ export default function Navbar() {
                       onClick={() => handleNavigation(item.path)}
                     >
                       <div style={dropdownLinkStyle}>
-                        <span style={{ marginRight: '0.5rem' }}>{item.icon}</span>
                         {item.label}
                       </div>
                     </li>
@@ -258,7 +257,6 @@ export default function Navbar() {
                     onClick={handleLogout}
                   >
                     <div style={{...dropdownLinkStyle, color: '#e74c3c'}}>
-                      <span style={{ marginRight: '0.5rem' }}>🚪</span>
                       Logout
                     </div>
                   </li>

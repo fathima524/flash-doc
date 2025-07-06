@@ -5,7 +5,7 @@ import subjectsData from "../data/subjects.json";
 function Flashcard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { subject, difficulty } = location.state || {};
+  const { subject, difficulty, mode, questionLimit } = location.state || {};
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -17,16 +17,49 @@ function Flashcard() {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [isTimerActive, setIsTimerActive] = useState(true);
   const [sessionStartTime, setSessionStartTime] = useState(Date.now());
+  const [spacedRepetitionQueue, setSpacedRepetitionQueue] = useState([]);
+  const [currentSessionQuestions, setCurrentSessionQuestions] = useState([]);
+
+  // Spaced Repetition Algorithm Configuration
+  const SPACED_REPETITION_CONFIG = {
+    correct: {
+      easy: 40,      // Reappear after 40 questions
+      medium: 35,    // Reappear after 35 questions  
+      hard: 30       // Reappear after 30 questions
+    },
+    incorrect: {
+      easy: 8,       // Reappear after 8 questions
+      medium: 10,    // Reappear after 10 questions
+      hard: 12       // Reappear after 12 questions
+    }
+  };
 
   useEffect(() => {
-    if (subject && subject !== "mixed") {
+    let selectedQuestions = [];
+
+    if (mode === "free_trial") {
+      // Free trial mode - random questions from all subjects
+      const allQuestions = subjectsData.subjects.flatMap(s => s.questions);
+      let filteredQuestions = allQuestions;
+      
+      if (difficulty && difficulty !== 'mixed') {
+        filteredQuestions = allQuestions.filter(q => q.difficulty === difficulty);
+      }
+      
+      selectedQuestions = shuffleArray(filteredQuestions).slice(0, questionLimit || 5);
+    } else if (mode === "challenge") {
+      // Challenge mode - random questions from all subjects with mixed difficulty
+      const allQuestions = subjectsData.subjects.flatMap(s => s.questions);
+      selectedQuestions = shuffleArray(allQuestions).slice(0, 15);
+    } else if (subject && subject !== "mixed") {
+      // Specific subject
       const subjectData = subjectsData.subjects.find(s => s.id === subject);
       if (subjectData) {
         let filteredQuestions = subjectData.questions;
         if (difficulty && difficulty !== 'all') {
           filteredQuestions = subjectData.questions.filter(q => q.difficulty === difficulty);
         }
-        setQuestions(shuffleArray(filteredQuestions));
+        selectedQuestions = shuffleArray(filteredQuestions);
       }
     } else {
       // Mixed questions from all subjects
@@ -34,10 +67,13 @@ function Flashcard() {
       if (difficulty && difficulty !== 'all') {
         allQuestions = allQuestions.filter(q => q.difficulty === difficulty);
       }
-      setQuestions(shuffleArray(allQuestions.slice(0, 10)));
+      selectedQuestions = shuffleArray(allQuestions.slice(0, 10));
     }
+
+    setQuestions(selectedQuestions);
+    setCurrentSessionQuestions(selectedQuestions);
     setSessionStartTime(Date.now());
-  }, [subject, difficulty]);
+  }, [subject, difficulty, mode, questionLimit]);
 
   // Timer effect
   useEffect(() => {
@@ -61,10 +97,63 @@ function Flashcard() {
     return shuffled;
   };
 
+  const addToSpacedRepetition = (question, isCorrect) => {
+    const questionDifficulty = question.difficulty;
+    const reappearAfter = isCorrect 
+      ? SPACED_REPETITION_CONFIG.correct[questionDifficulty]
+      : SPACED_REPETITION_CONFIG.incorrect[questionDifficulty];
+
+    const newEntry = {
+      question: question,
+      reappearAfter: reappearAfter,
+      currentCount: 0,
+      isCorrect: isCorrect,
+      addedAt: Date.now()
+    };
+
+    setSpacedRepetitionQueue(prev => [...prev, newEntry]);
+  };
+
+  const getNextQuestion = () => {
+    // Check if any spaced repetition questions are ready
+    const readyQuestions = spacedRepetitionQueue.filter(item => 
+      item.currentCount >= item.reappearAfter
+    );
+
+    if (readyQuestions.length > 0) {
+      // Return a spaced repetition question
+      const questionToReturn = readyQuestions[0];
+      setSpacedRepetitionQueue(prev => 
+        prev.filter(item => item !== questionToReturn)
+      );
+      return questionToReturn.question;
+    }
+
+    // Return next question from current session
+    if (currentQuestionIndex < questions.length - 1) {
+      return questions[currentQuestionIndex + 1];
+    }
+
+    return null;
+  };
+
+  const updateSpacedRepetitionCounts = () => {
+    setSpacedRepetitionQueue(prev => 
+      prev.map(item => ({
+        ...item,
+        currentCount: item.currentCount + 1
+      }))
+    );
+  };
+
   const handleTimeUp = () => {
     setIsTimerActive(false);
-    alert("Time's up! Let's see how you did.");
-    handleFinishSession();
+    if (mode === "free_trial") {
+      handleFreeTrialEnd();
+    } else {
+      alert("Time's up! Let's see how you did.");
+      handleFinishSession();
+    }
   };
 
   const handleShowAnswer = () => {
@@ -87,6 +176,10 @@ function Flashcard() {
     setQuestionHistory(newHistory);
     setScore(score + 1);
     setStreak(streak + 1);
+    
+    // Add to spaced repetition
+    addToSpacedRepetition(currentQuestion, true);
+    
     handleNextQuestion();
   };
 
@@ -100,19 +193,59 @@ function Flashcard() {
     
     setQuestionHistory(newHistory);
     setStreak(0);
+    
+    // Add to spaced repetition
+    addToSpacedRepetition(currentQuestion, false);
+    
     handleNextQuestion();
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    updateSpacedRepetitionCounts();
+    
+    const nextQuestion = getNextQuestion();
+    
+    if (nextQuestion) {
+      // Find the index of the next question in the current questions array
+      const nextIndex = questions.findIndex(q => q.id === nextQuestion.id);
+      if (nextIndex !== -1) {
+        setCurrentQuestionIndex(nextIndex);
+      } else {
+        // If it's a spaced repetition question, add it to the current session
+        setQuestions(prev => [...prev, nextQuestion]);
+        setCurrentQuestionIndex(questions.length);
+      }
+      
       setShowAnswer(false);
       setShowHint(false);
-      setTimeLeft(300); // Reset timer for next question
+      setTimeLeft(300);
       setIsTimerActive(true);
     } else {
-      handleFinishSession();
+      if (mode === "free_trial") {
+        handleFreeTrialEnd();
+      } else {
+        handleFinishSession();
+      }
     }
+  };
+
+  const handleFreeTrialEnd = () => {
+    const sessionData = {
+      score: score,
+      totalQuestions: questionHistory.length,
+      timeSpent: Math.floor((Date.now() - sessionStartTime) / 1000),
+      mode: "free_trial",
+      difficulty: difficulty,
+      streak: streak
+    };
+    
+    navigate("/pricing", { 
+      state: { 
+        fromFreeTrial: true, 
+        sessionData: sessionData,
+        message: "Great job! Upgrade to access unlimited questions and all subjects."
+      } 
+    });
   };
 
   const handleFinishSession = () => {
@@ -122,12 +255,14 @@ function Flashcard() {
       timeSpent: Math.floor((Date.now() - sessionStartTime) / 1000),
       subject: subject,
       difficulty: difficulty,
-      streak: streak
+      streak: streak,
+      spacedRepetitionData: spacedRepetitionQueue
     };
     
     // Save session data
     localStorage.setItem("lastSession", JSON.stringify(sessionData));
     localStorage.setItem("currentStreak", streak.toString());
+    localStorage.setItem("spacedRepetitionQueue", JSON.stringify(spacedRepetitionQueue));
     
     navigate("/dashboard", { 
       state: { 
@@ -249,6 +384,17 @@ function Flashcard() {
     background: 'rgba(39, 55, 77, 0.1)',
     padding: '0.8rem 1.5rem',
     borderRadius: '20px'
+  };
+
+  const modeStyle = {
+    color: mode === 'free_trial' ? '#e74c3c' : mode === 'challenge' ? '#f39c12' : '#27374d',
+    fontSize: '0.9rem',
+    fontWeight: '600',
+    background: mode === 'free_trial' ? 'rgba(231, 76, 60, 0.1)' : mode === 'challenge' ? 'rgba(243, 156, 18, 0.1)' : 'rgba(39, 55, 77, 0.1)',
+    padding: '0.5rem 1rem',
+    borderRadius: '15px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
   };
 
   const cardFrontStyle = {
@@ -398,6 +544,11 @@ function Flashcard() {
           <div style={streakStyle}>
             🔥 Streak: {streak}
           </div>
+          {mode && (
+            <div style={modeStyle}>
+              {mode === 'free_trial' ? 'Free Trial' : mode === 'challenge' ? 'Challenge' : 'Premium'}
+            </div>
+          )}
         </div>
 
         {/* Flashcard */}
@@ -431,7 +582,7 @@ function Flashcard() {
         <div style={buttonContainerStyle}>
           {!showAnswer ? (
             <>
-              {currentQuestion?.difficulty === 'hard' && !showHint && (
+              {currentQuestion?.difficulty === 'hard' && currentQuestion?.hint && !showHint && (
                 <button 
                   style={secondaryButtonStyle}
                   onClick={handleShowHint}
@@ -509,6 +660,21 @@ function Flashcard() {
             🏠 Back to Dashboard
           </button>
         </div>
+
+        {/* Spaced Repetition Info */}
+        {spacedRepetitionQueue.length > 0 && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '1rem',
+            background: 'rgba(52, 152, 219, 0.1)',
+            borderRadius: '12px',
+            textAlign: 'center',
+            fontSize: '0.9rem',
+            color: '#2980b9'
+          }}>
+            📚 {spacedRepetitionQueue.length} questions in review queue
+          </div>
+        )}
       </div>
 
       {/* Progress Bar */}
