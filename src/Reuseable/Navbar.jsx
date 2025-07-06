@@ -1,18 +1,31 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const navigate = useNavigate();
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
+  const handleNavigation = (path) => {
+    navigate(path);
+    setIsDropdownOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+    setIsDropdownOpen(false);
+  };
+
   // Theme colors based on the provided palette
   const theme = {
-    primary: '#3c4859',
-    secondary: '#5a6c7d',
-    tertiary: '#8b9bb0',
-    light: '#d4dce6',
+    primary: '#27374d',
+    secondary: '#526d82',
+    tertiary: '#9db2bf',
+    light: '#dde6ed',
     white: '#ffffff',
     text: '#2c3e50',
     background: '#ffffff'
@@ -24,7 +37,7 @@ export default function Navbar() {
     alignItems: 'center',
     padding: '1rem 2rem',
     background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 50%, ${theme.tertiary} 100%)`,
-    boxShadow: '0 4px 20px rgba(60, 72, 89, 0.3)',
+    boxShadow: '0 4px 20px rgba(39, 55, 77, 0.3)',
     position: 'fixed',
     top: 0,
     left: 0,
@@ -80,7 +93,7 @@ export default function Navbar() {
     border: `1px solid ${theme.tertiary}`,
     borderRadius: '8px',
     boxShadow: '0 8px 25px rgba(0, 0, 0, 0.2)',
-    minWidth: '150px',
+    minWidth: '180px',
     zIndex: 1001,
     marginTop: '0.5rem',
     backdropFilter: 'blur(10px)',
@@ -95,16 +108,26 @@ export default function Navbar() {
 
   const dropdownItemStyle = {
     padding: '0.75rem 1rem',
-    borderBottom: `1px solid ${theme.tertiary}`,
-    transition: 'background-color 0.2s ease'
+    borderBottom: `1px solid ${theme.light}`,
+    transition: 'background-color 0.2s ease',
+    cursor: 'pointer'
   };
 
   const dropdownLinkStyle = {
     textDecoration: 'none',
     color: theme.text,
     fontWeight: '500',
-    display: 'block'
+    display: 'block',
+    fontSize: '0.95rem'
   };
+
+  const menuItems = [
+    { label: 'Dashboard', path: '/dashboard', icon: '🏠' },
+    { label: 'Study', path: '/flashcard', icon: '📚' },
+    { label: 'Streaks', path: '/streaks', icon: '🔥' },
+    { label: 'Pricing', path: '/pricing', icon: '💎' },
+    { label: 'Profile', path: '/complete-profile', icon: '👤' }
+  ];
 
   return (
     <div>
@@ -138,6 +161,7 @@ export default function Navbar() {
               transition: 'all 0.3s ease',
               border: '2px solid rgba(255,255,255,0.4)'
             }}
+            onClick={() => handleNavigation('/dashboard')}
             onMouseEnter={(e) => {
               e.target.style.transform = 'scale(1.05)';
               e.target.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3), inset 0 1px 3px rgba(255,255,255,0.5)';
@@ -164,8 +188,8 @@ export default function Navbar() {
               <defs>
                 <linearGradient id="medicalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                   <stop offset="0%" stopColor="#2c5aa0" />
-                  <stop offset="30%" stopColor="#3c4859" />
-                  <stop offset="70%" stopColor="#5a6c7d" />
+                  <stop offset="30%" stopColor="#27374d" />
+                  <stop offset="70%" stopColor="#526d82" />
                   <stop offset="100%" stopColor="#4a90e2" />
                 </linearGradient>
               </defs>
@@ -206,41 +230,37 @@ export default function Navbar() {
             {isDropdownOpen && (
               <div style={dropdownStyle}>
                 <ul style={dropdownListStyle}>
+                  {menuItems.map((item, index) => (
+                    <li 
+                      key={index}
+                      style={{
+                        ...dropdownItemStyle,
+                        borderBottom: index === menuItems.length - 1 ? 'none' : `1px solid ${theme.light}`
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = theme.tertiary + '20'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      onClick={() => handleNavigation(item.path)}
+                    >
+                      <div style={dropdownLinkStyle}>
+                        <span style={{ marginRight: '0.5rem' }}>{item.icon}</span>
+                        {item.label}
+                      </div>
+                    </li>
+                  ))}
                   <li 
-                    style={{...dropdownItemStyle, borderBottom: 'none'}}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = theme.tertiary + '20'}
+                    style={{
+                      ...dropdownItemStyle,
+                      borderBottom: 'none',
+                      borderTop: `1px solid ${theme.light}`
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#ff6b6b20'}
                     onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                    onClick={handleLogout}
                   >
-                    <a href="#" style={dropdownLinkStyle}>Home</a>
-                  </li>
-                  <li 
-                    style={dropdownItemStyle}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = theme.tertiary + '20'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <a href="#" style={dropdownLinkStyle}>Profile</a>
-                  </li>
-                  <li 
-                    style={{...dropdownItemStyle, borderBottom: 'none'}}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = theme.tertiary + '20'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <a href="#" style={dropdownLinkStyle}>Subscribe</a>
-                  </li>
-                  <li 
-                    style={dropdownItemStyle}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = theme.tertiary + '20'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <a href="#" style={dropdownLinkStyle}>Settings</a>
-                  </li>
-                  
-                  <li 
-                    style={{...dropdownItemStyle, borderBottom: 'none'}}
-                    onMouseEnter={(e) => e.target.style.backgroundColor = theme.tertiary + '20'}
-                    onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-                  >
-                    <a href="#" style={dropdownLinkStyle}>Logout</a>
+                    <div style={{...dropdownLinkStyle, color: '#e74c3c'}}>
+                      <span style={{ marginRight: '0.5rem' }}>🚪</span>
+                      Logout
+                    </div>
                   </li>
                 </ul>
               </div>

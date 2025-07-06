@@ -12,13 +12,30 @@ function Dashboard() {
   const [streak, setStreak] = useState(5);
   const [questionsToday, setQuestionsToday] = useState(12);
   const [totalProgress, setTotalProgress] = useState(65);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState("Free");
 
   useEffect(() => {
-    // Get user name from localStorage (set during profile completion)
+    // Get user data from localStorage
     const storedName = localStorage.getItem("userName");
-    if (storedName) {
-      setUserName(storedName);
-    }
+    const storedStreak = localStorage.getItem("currentStreak");
+    const storedQuestions = localStorage.getItem("questionsToday");
+    const storedProgress = localStorage.getItem("totalProgress");
+    const storedSubscription = localStorage.getItem("subscriptionStatus");
+    
+    if (storedName) setUserName(storedName);
+    if (storedStreak) setStreak(parseInt(storedStreak));
+    if (storedQuestions) setQuestionsToday(parseInt(storedQuestions));
+    if (storedProgress) setTotalProgress(parseInt(storedProgress));
+    if (storedSubscription) setSubscriptionStatus(storedSubscription);
+
+    // Load recent activity
+    const activity = JSON.parse(localStorage.getItem("recentActivity")) || [
+      { subject: "Anatomy", score: "8/10", time: "2 hours ago" },
+      { subject: "Physiology", score: "9/10", time: "Yesterday" },
+      { subject: "Biochemistry", score: "7/10", time: "2 days ago" }
+    ];
+    setRecentActivity(activity);
   }, []);
 
   const handleStartStudy = () => {
@@ -27,7 +44,6 @@ function Dashboard() {
       return;
     }
     
-    // Navigate to flashcard with selected subject and difficulty
     navigate("/flashcard", { 
       state: { 
         subject: selectedSubject, 
@@ -36,68 +52,82 @@ function Dashboard() {
     });
   };
 
-  const handleUpgrade = () => {
-    navigate("/pricing");
+  const handleQuickStart = (difficulty) => {
+    navigate("/flashcard", { 
+      state: { 
+        subject: "mixed", 
+        difficulty: difficulty 
+      } 
+    });
   };
 
   const containerStyle = {
     minHeight: '100vh',
     width: '100%',
     background: 'linear-gradient(135deg, #27374d 0%, #526d82 40%, #9db2bf 70%, #dde6ed 100%)',
-    padding: '2rem',
+    padding: window.innerWidth <= 768 ? '1rem' : '2rem',
     fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
     boxSizing: 'border-box'
   };
 
   const dashboardGridStyle = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '2rem',
-    maxWidth: '1200px',
+    gridTemplateColumns: window.innerWidth <= 768 ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))',
+    gap: window.innerWidth <= 768 ? '1.5rem' : '2rem',
+    maxWidth: '1400px',
     margin: '0 auto',
     padding: '1rem 0'
   };
 
   const cardStyle = {
     background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(10px)',
+    backdropFilter: 'blur(15px)',
     borderRadius: '20px',
-    padding: '2rem',
-    boxShadow: '0 20px 40px rgba(39, 55, 77, 0.3), 0 8px 16px rgba(39, 55, 77, 0.2)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    transition: 'all 0.3s ease'
+    padding: window.innerWidth <= 768 ? '1.5rem' : '2rem',
+    boxShadow: '0 20px 40px rgba(39, 55, 77, 0.25), 0 8px 16px rgba(39, 55, 77, 0.15)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    transition: 'all 0.3s ease',
+    position: 'relative',
+    overflow: 'hidden'
   };
 
   const welcomeCardStyle = {
     ...cardStyle,
-    gridColumn: 'span 2',
+    gridColumn: window.innerWidth <= 768 ? '1' : 'span 2',
     textAlign: 'center',
-    background: 'linear-gradient(135deg, rgba(39, 55, 77, 0.9) 0%, rgba(82, 109, 130, 0.9) 100%)',
-    color: 'white'
+    background: 'linear-gradient(135deg, rgba(39, 55, 77, 0.95) 0%, rgba(82, 109, 130, 0.95) 100%)',
+    color: 'white',
+    minHeight: '200px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center'
   };
 
   const titleStyle = {
-    fontSize: '2.5rem',
+    fontSize: window.innerWidth <= 768 ? '2rem' : '2.8rem',
     fontWeight: '700',
     marginBottom: '1rem',
     color: 'white',
-    textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)'
+    textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+    lineHeight: '1.2'
   };
 
   const subtitleStyle = {
-    fontSize: '1.2rem',
+    fontSize: window.innerWidth <= 768 ? '1rem' : '1.3rem',
     fontWeight: '400',
     opacity: 0.9,
-    marginBottom: '2rem'
+    marginBottom: '2rem',
+    lineHeight: '1.4'
   };
 
   const sectionTitleStyle = {
-    fontSize: '1.5rem',
-    fontWeight: '600',
+    fontSize: window.innerWidth <= 768 ? '1.3rem' : '1.6rem',
+    fontWeight: '700',
     color: '#27374d',
     marginBottom: '1.5rem',
-    borderBottom: '2px solid #9db2bf',
-    paddingBottom: '0.5rem'
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem'
   };
 
   const selectStyle = {
@@ -110,7 +140,13 @@ function Dashboard() {
     background: 'rgba(255, 255, 255, 0.9)',
     transition: 'all 0.3s ease',
     marginBottom: '1rem',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2327374d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+    backgroundPosition: 'right 12px center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: '16px',
+    paddingRight: '40px'
   };
 
   const buttonStyle = {
@@ -124,41 +160,88 @@ function Dashboard() {
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.3s ease',
-    marginTop: '1rem'
+    marginTop: '1rem',
+    boxShadow: '0 4px 15px rgba(39, 55, 77, 0.3)'
+  };
+
+  const quickActionButtonStyle = {
+    padding: '0.8rem 1.5rem',
+    background: 'rgba(255, 255, 255, 0.2)',
+    color: 'white',
+    border: '2px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '12px',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    backdropFilter: 'blur(10px)',
+    flex: '1',
+    minWidth: '120px'
   };
 
   const statCardStyle = {
     ...cardStyle,
-    textAlign: 'center'
+    textAlign: 'center',
+    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%)'
   };
 
   const statNumberStyle = {
-    fontSize: '3rem',
+    fontSize: window.innerWidth <= 768 ? '2.5rem' : '3.5rem',
     fontWeight: '700',
     color: '#27374d',
-    marginBottom: '0.5rem'
+    marginBottom: '0.5rem',
+    textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
   };
 
   const statLabelStyle = {
     fontSize: '1rem',
     color: '#526d82',
-    fontWeight: '500'
+    fontWeight: '600'
   };
 
   const progressBarStyle = {
     width: '100%',
-    height: '10px',
+    height: '12px',
     background: '#dde6ed',
-    borderRadius: '5px',
+    borderRadius: '6px',
     overflow: 'hidden',
-    marginTop: '1rem'
+    marginTop: '1rem',
+    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)'
   };
 
   const progressFillStyle = {
     height: '100%',
-    background: 'linear-gradient(90deg, #27374d 0%, #526d82 100%)',
+    background: 'linear-gradient(90deg, #27374d 0%, #526d82 50%, #9db2bf 100%)',
     width: `${totalProgress}%`,
-    transition: 'width 0.3s ease'
+    transition: 'width 0.8s ease',
+    borderRadius: '6px'
+  };
+
+  const activityItemStyle = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '1rem',
+    background: 'rgba(157, 178, 191, 0.1)',
+    borderRadius: '12px',
+    marginBottom: '0.8rem',
+    border: '1px solid rgba(157, 178, 191, 0.2)'
+  };
+
+  const subscriptionBadgeStyle = {
+    position: 'absolute',
+    top: '1rem',
+    right: '1rem',
+    background: subscriptionStatus === 'Premium' 
+      ? 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)' 
+      : 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '20px',
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
   };
 
   return (
@@ -168,113 +251,219 @@ function Dashboard() {
         <div style={dashboardGridStyle}>
           {/* Welcome Card */}
           <div style={welcomeCardStyle}>
+            <div style={subscriptionBadgeStyle}>
+              {subscriptionStatus}
+            </div>
             <h1 style={titleStyle}>
               Welcome back, {userName || "Student"}! 👋
             </h1>
             <p style={subtitleStyle}>
-              Ready to continue your MBBS revision journey?
+              Ready to ace your MBBS exams? Let's continue your learning journey!
             </p>
             <div style={{
               display: 'flex',
               justifyContent: 'center',
               gap: '1rem',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              marginTop: '1rem'
             }}>
               <button 
-                style={{
-                  ...buttonStyle,
-                  width: 'auto',
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(10px)'
+                style={quickActionButtonStyle}
+                onClick={() => handleQuickStart('easy')}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                  e.target.style.transform = 'translateY(-2px)';
                 }}
-                onClick={handleStartStudy}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
               >
-                Start Studying
+                Quick Easy
               </button>
               <button 
-                style={{
-                  ...buttonStyle,
-                  width: 'auto',
-                  background: 'linear-gradient(135deg, #9db2bf 0%, #dde6ed 100%)',
-                  color: '#27374d'
+                style={quickActionButtonStyle}
+                onClick={() => handleQuickStart('medium')}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                  e.target.style.transform = 'translateY(-2px)';
                 }}
-                onClick={handleUpgrade}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
               >
-                Upgrade Plan
+                Quick Medium
+              </button>
+              <button 
+                style={quickActionButtonStyle}
+                onClick={() => handleQuickStart('hard')}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.3)';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                Quick Hard
               </button>
             </div>
           </div>
 
           {/* Subject Selection */}
           <div style={cardStyle}>
-            <h3 style={sectionTitleStyle}>Select Subject</h3>
+            <h3 style={sectionTitleStyle}>
+              📚 Study Session
+            </h3>
+            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#526d82', marginBottom: '0.5rem', display: 'block' }}>
+              Choose Subject
+            </label>
             <select 
               value={selectedSubject} 
               onChange={(e) => setSelectedSubject(e.target.value)}
               style={selectStyle}
             >
-              <option value="">Choose a subject...</option>
+              <option value="">Select a subject...</option>
               {subjectsData.subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
-                  {subject.name}
+                  {subject.name} ({subject.questions.length} questions)
                 </option>
               ))}
             </select>
             
-            <h4 style={{...sectionTitleStyle, fontSize: '1.2rem', marginTop: '1.5rem'}}>
+            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#526d82', marginBottom: '0.5rem', display: 'block' }}>
               Difficulty Level
-            </h4>
+            </label>
             <select 
               value={selectedDifficulty} 
               onChange={(e) => setSelectedDifficulty(e.target.value)}
               style={selectStyle}
             >
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
+              <option value="easy">🟢 Easy - Build Confidence</option>
+              <option value="medium">🟡 Medium - Challenge Yourself</option>
+              <option value="hard">🔴 Hard - Master Level</option>
             </select>
+
+            <button 
+              style={buttonStyle}
+              onClick={handleStartStudy}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #1e2a3a 0%, #455a6b 100%)';
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 8px 25px rgba(39, 55, 77, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'linear-gradient(135deg, #27374d 0%, #526d82 100%)';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 15px rgba(39, 55, 77, 0.3)';
+              }}
+            >
+              🚀 Start Studying
+            </button>
           </div>
 
           {/* Stats Cards */}
           <div style={statCardStyle}>
             <div style={statNumberStyle}>{streak}</div>
-            <div style={statLabelStyle}>Day Streak 🔥</div>
+            <div style={statLabelStyle}>🔥 Day Streak</div>
+            <div style={{
+              fontSize: '0.8rem',
+              color: '#9db2bf',
+              marginTop: '0.5rem',
+              fontStyle: 'italic'
+            }}>
+              Keep it up!
+            </div>
           </div>
 
           <div style={statCardStyle}>
             <div style={statNumberStyle}>{questionsToday}</div>
-            <div style={statLabelStyle}>Questions Today</div>
+            <div style={statLabelStyle}>📝 Questions Today</div>
+            <div style={{
+              fontSize: '0.8rem',
+              color: '#9db2bf',
+              marginTop: '0.5rem',
+              fontStyle: 'italic'
+            }}>
+              Target: 20
+            </div>
           </div>
 
           <div style={statCardStyle}>
             <div style={statNumberStyle}>{totalProgress}%</div>
-            <div style={statLabelStyle}>Overall Progress</div>
+            <div style={statLabelStyle}>📊 Overall Progress</div>
             <div style={progressBarStyle}>
               <div style={progressFillStyle}></div>
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Recent Activity */}
           <div style={cardStyle}>
-            <h3 style={sectionTitleStyle}>Quick Actions</h3>
+            <h3 style={sectionTitleStyle}>
+              📈 Recent Activity
+            </h3>
+            {recentActivity.map((activity, index) => (
+              <div key={index} style={activityItemStyle}>
+                <div>
+                  <div style={{ fontWeight: '600', color: '#27374d', fontSize: '0.95rem' }}>
+                    {activity.subject}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#526d82' }}>
+                    {activity.time}
+                  </div>
+                </div>
+                <div style={{
+                  background: 'linear-gradient(135deg, #27374d 0%, #526d82 100%)',
+                  color: 'white',
+                  padding: '0.3rem 0.8rem',
+                  borderRadius: '12px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600'
+                }}>
+                  {activity.score}
+                </div>
+              </div>
+            ))}
             <button 
               style={{
                 ...buttonStyle,
                 background: 'linear-gradient(135deg, #9db2bf 0%, #526d82 100%)',
-                marginBottom: '1rem'
+                fontSize: '0.95rem',
+                padding: '0.8rem 1.5rem'
               }}
-              onClick={() => navigate("/flashcard")}
+              onClick={() => navigate("/streaks")}
             >
-              Continue Last Session
+              📊 View All Stats
+            </button>
+          </div>
+
+          {/* Quick Actions */}
+          <div style={cardStyle}>
+            <h3 style={sectionTitleStyle}>
+              ⚡ Quick Actions
+            </h3>
+            <button 
+              style={{
+                ...buttonStyle,
+                background: 'linear-gradient(135deg, #9db2bf 0%, #526d82 100%)',
+                marginBottom: '1rem',
+                fontSize: '0.95rem'
+              }}
+              onClick={() => navigate("/flashcard", { state: { subject: "mixed", difficulty: "easy" } })}
+            >
+              🎯 Continue Last Session
             </button>
             <button 
               style={{
                 ...buttonStyle,
-                background: 'linear-gradient(135deg, #526d82 0%, #27374d 100%)'
+                background: 'linear-gradient(135deg, #526d82 0%, #27374d 100%)',
+                fontSize: '0.95rem'
               }}
               onClick={() => navigate("/pricing")}
             >
-              View Subscription
+              💎 Upgrade to Premium
             </button>
           </div>
         </div>

@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import Navbar from "../Reuseable/Navbar";
-import Footer from "../Reuseable/Footer";
 import subjectsData from "../data/subjects.json";
 
 function Flashcard() {
@@ -10,136 +8,191 @@ function Flashcard() {
   const { subject, difficulty } = location.state || {};
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [showAnswer, setShowAnswer] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [questions, setQuestions] = useState([]);
   const [questionHistory, setQuestionHistory] = useState([]);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+  const [isTimerActive, setIsTimerActive] = useState(true);
+  const [sessionStartTime, setSessionStartTime] = useState(Date.now());
 
   useEffect(() => {
-    if (subject) {
+    if (subject && subject !== "mixed") {
       const subjectData = subjectsData.subjects.find(s => s.id === subject);
       if (subjectData) {
         let filteredQuestions = subjectData.questions;
         if (difficulty && difficulty !== 'all') {
           filteredQuestions = subjectData.questions.filter(q => q.difficulty === difficulty);
         }
-        setQuestions(filteredQuestions);
+        setQuestions(shuffleArray(filteredQuestions));
       }
     } else {
-      // If no subject selected, show all easy questions
-      const allEasyQuestions = subjectsData.subjects.flatMap(s => 
-        s.questions.filter(q => q.difficulty === 'easy')
-      );
-      setQuestions(allEasyQuestions.slice(0, 10));
+      // Mixed questions from all subjects
+      let allQuestions = subjectsData.subjects.flatMap(s => s.questions);
+      if (difficulty && difficulty !== 'all') {
+        allQuestions = allQuestions.filter(q => q.difficulty === difficulty);
+      }
+      setQuestions(shuffleArray(allQuestions.slice(0, 10)));
     }
+    setSessionStartTime(Date.now());
   }, [subject, difficulty]);
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  // Timer effect
+  useEffect(() => {
+    let interval = null;
+    if (isTimerActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft(timeLeft => timeLeft - 1);
+      }, 1000);
+    } else if (timeLeft === 0) {
+      handleTimeUp();
+    }
+    return () => clearInterval(interval);
+  }, [isTimerActive, timeLeft]);
 
-  const handleAnswerSelect = (answerIndex) => {
-    setSelectedAnswer(answerIndex);
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   };
 
-  const handleSubmitAnswer = () => {
-    if (selectedAnswer === null) {
-      alert("Please select an answer!");
-      return;
-    }
-
-    const isCorrect = selectedAnswer === currentQuestion.correct;
-    const newHistory = [...questionHistory, {
-      question: currentQuestion,
-      selectedAnswer,
-      isCorrect,
-      usedHint: showHint
-    }];
-    
-    setQuestionHistory(newHistory);
-    
-    if (isCorrect) {
-      setScore(score + 1);
-      setStreak(streak + 1);
-    } else {
-      setStreak(0);
-    }
-
-    setShowResult(true);
+  const handleTimeUp = () => {
+    setIsTimerActive(false);
+    alert("Time's up! Let's see how you did.");
+    handleFinishSession();
   };
 
-  const handleNextQuestion = () => {
-    if (isLastQuestion) {
-      // Show final results
-      navigate("/dashboard", { 
-        state: { 
-          completedSession: true, 
-          finalScore: score + (selectedAnswer === currentQuestion.correct ? 1 : 0),
-          totalQuestions: questions.length 
-        } 
-      });
-    } else {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
-      setShowHint(false);
-      setShowResult(false);
-    }
+  const handleShowAnswer = () => {
+    setShowAnswer(true);
+    setIsTimerActive(false);
   };
 
   const handleShowHint = () => {
     setShowHint(true);
   };
 
+  const handleMarkCorrect = () => {
+    const newHistory = [...questionHistory, {
+      question: currentQuestion,
+      isCorrect: true,
+      usedHint: showHint,
+      timeSpent: 300 - timeLeft
+    }];
+    
+    setQuestionHistory(newHistory);
+    setScore(score + 1);
+    setStreak(streak + 1);
+    handleNextQuestion();
+  };
+
+  const handleMarkIncorrect = () => {
+    const newHistory = [...questionHistory, {
+      question: currentQuestion,
+      isCorrect: false,
+      usedHint: showHint,
+      timeSpent: 300 - timeLeft
+    }];
+    
+    setQuestionHistory(newHistory);
+    setStreak(0);
+    handleNextQuestion();
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setShowAnswer(false);
+      setShowHint(false);
+      setTimeLeft(300); // Reset timer for next question
+      setIsTimerActive(true);
+    } else {
+      handleFinishSession();
+    }
+  };
+
+  const handleFinishSession = () => {
+    const sessionData = {
+      score: score,
+      totalQuestions: questions.length,
+      timeSpent: Math.floor((Date.now() - sessionStartTime) / 1000),
+      subject: subject,
+      difficulty: difficulty,
+      streak: streak
+    };
+    
+    // Save session data
+    localStorage.setItem("lastSession", JSON.stringify(sessionData));
+    localStorage.setItem("currentStreak", streak.toString());
+    
+    navigate("/dashboard", { 
+      state: { 
+        completedSession: true, 
+        sessionData: sessionData
+      } 
+    });
+  };
+
   const handleBackToDashboard = () => {
     navigate("/dashboard");
   };
 
+  const currentQuestion = questions[currentQuestionIndex];
+
   if (!questions.length) {
     return (
-      <>
-        <Navbar />
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #27374d 0%, #526d82 40%, #9db2bf 70%, #dde6ed 100%)',
+        fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+      }}>
         <div style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #27374d 0%, #526d82 40%, #9db2bf 70%, #dde6ed 100%)'
+          background: 'rgba(255, 255, 255, 0.95)',
+          padding: '3rem',
+          borderRadius: '20px',
+          textAlign: 'center',
+          boxShadow: '0 20px 40px rgba(39, 55, 77, 0.3)'
         }}>
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            padding: '3rem',
-            borderRadius: '20px',
-            textAlign: 'center'
-          }}>
-            <h2>No questions available</h2>
-            <button 
-              onClick={handleBackToDashboard}
-              style={{
-                padding: '1rem 2rem',
-                background: '#27374d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                marginTop: '1rem'
-              }}
-            >
-              Back to Dashboard
-            </button>
-          </div>
+          <h2 style={{ color: '#27374d', marginBottom: '1rem' }}>No questions available</h2>
+          <p style={{ color: '#526d82', marginBottom: '2rem' }}>Please select a different subject or difficulty level.</p>
+          <button 
+            onClick={handleBackToDashboard}
+            style={{
+              padding: '1rem 2rem',
+              background: 'linear-gradient(135deg, #27374d 0%, #526d82 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }}
+          >
+            Back to Dashboard
+          </button>
         </div>
-        <Footer />
-      </>
+      </div>
     );
   }
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const containerStyle = {
     minHeight: '100vh',
     width: '100%',
     background: 'linear-gradient(135deg, #27374d 0%, #526d82 40%, #9db2bf 70%, #dde6ed 100%)',
-    padding: '2rem',
+    padding: window.innerWidth <= 768 ? '1rem' : '2rem',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -149,14 +202,15 @@ function Flashcard() {
 
   const flashcardStyle = {
     background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(10px)',
+    backdropFilter: 'blur(15px)',
     borderRadius: '24px',
-    padding: '3rem',
-    maxWidth: '800px',
+    padding: window.innerWidth <= 768 ? '2rem' : '3rem',
+    maxWidth: '900px',
     width: '100%',
-    boxShadow: '0 20px 40px rgba(39, 55, 77, 0.3), 0 8px 16px rgba(39, 55, 77, 0.2)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    marginBottom: '2rem'
+    boxShadow: '0 25px 50px rgba(39, 55, 77, 0.3), 0 10px 20px rgba(39, 55, 77, 0.2)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    marginBottom: '2rem',
+    position: 'relative'
   };
 
   const headerStyle = {
@@ -168,50 +222,93 @@ function Flashcard() {
     gap: '1rem'
   };
 
+  const timerStyle = {
+    background: timeLeft <= 60 ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' : 'linear-gradient(135deg, #27374d 0%, #526d82 100%)',
+    color: 'white',
+    padding: '0.8rem 1.5rem',
+    borderRadius: '20px',
+    fontSize: '1.1rem',
+    fontWeight: '700',
+    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)',
+    animation: timeLeft <= 10 ? 'pulse 1s infinite' : 'none'
+  };
+
   const progressStyle = {
     color: '#526d82',
     fontSize: '1.1rem',
-    fontWeight: '600'
+    fontWeight: '600',
+    background: 'rgba(157, 178, 191, 0.2)',
+    padding: '0.8rem 1.5rem',
+    borderRadius: '20px'
   };
 
   const streakStyle = {
     color: '#27374d',
     fontSize: '1.1rem',
-    fontWeight: '600'
+    fontWeight: '600',
+    background: 'rgba(39, 55, 77, 0.1)',
+    padding: '0.8rem 1.5rem',
+    borderRadius: '20px'
+  };
+
+  const cardFrontStyle = {
+    background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+    borderRadius: '16px',
+    padding: '2.5rem',
+    marginBottom: '2rem',
+    border: '2px solid #dde6ed',
+    minHeight: '200px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    position: 'relative',
+    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)'
+  };
+
+  const cardBackStyle = {
+    background: 'linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%)',
+    borderRadius: '16px',
+    padding: '2.5rem',
+    marginBottom: '2rem',
+    border: '2px solid #c3e6cb',
+    minHeight: '200px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    textAlign: 'center',
+    boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)'
   };
 
   const questionStyle = {
-    fontSize: '1.5rem',
+    fontSize: window.innerWidth <= 768 ? '1.3rem' : '1.6rem',
     fontWeight: '600',
     color: '#27374d',
-    marginBottom: '2rem',
-    lineHeight: '1.4'
+    lineHeight: '1.4',
+    margin: 0
   };
 
-  const optionsContainerStyle = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-    marginBottom: '2rem'
+  const answerStyle = {
+    fontSize: window.innerWidth <= 768 ? '1.2rem' : '1.4rem',
+    fontWeight: '600',
+    color: '#155724',
+    lineHeight: '1.4',
+    marginBottom: '1rem'
   };
 
-  const optionStyle = (index) => ({
-    padding: '1.2rem',
-    border: `2px solid ${selectedAnswer === index ? '#27374d' : '#dde6ed'}`,
-    borderRadius: '12px',
-    background: selectedAnswer === index ? 'rgba(39, 55, 77, 0.1)' : 'rgba(255, 255, 255, 0.8)',
-    cursor: showResult ? 'default' : 'pointer',
-    transition: 'all 0.3s ease',
+  const explanationStyle = {
     fontSize: '1rem',
-    fontWeight: '500',
-    color: '#27374d'
-  });
+    color: '#495057',
+    lineHeight: '1.5',
+    fontStyle: 'italic'
+  };
 
   const buttonContainerStyle = {
     display: 'flex',
     gap: '1rem',
     justifyContent: 'center',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    marginTop: '1rem'
   };
 
   const buttonStyle = {
@@ -221,13 +318,29 @@ function Flashcard() {
     fontSize: '1rem',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.3s ease'
+    transition: 'all 0.3s ease',
+    minWidth: '140px'
   };
 
   const primaryButtonStyle = {
     ...buttonStyle,
     background: 'linear-gradient(135deg, #27374d 0%, #526d82 100%)',
-    color: 'white'
+    color: 'white',
+    boxShadow: '0 4px 15px rgba(39, 55, 77, 0.3)'
+  };
+
+  const successButtonStyle = {
+    ...buttonStyle,
+    background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+    color: 'white',
+    boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
+  };
+
+  const dangerButtonStyle = {
+    ...buttonStyle,
+    background: 'linear-gradient(135deg, #dc3545 0%, #e74c3c 100%)',
+    color: 'white',
+    boxShadow: '0 4px 15px rgba(220, 53, 69, 0.3)'
   };
 
   const secondaryButtonStyle = {
@@ -238,128 +351,191 @@ function Flashcard() {
   };
 
   const hintStyle = {
-    background: 'rgba(157, 178, 191, 0.2)',
-    padding: '1rem',
+    background: 'rgba(255, 193, 7, 0.1)',
+    border: '2px solid rgba(255, 193, 7, 0.3)',
+    padding: '1.5rem',
     borderRadius: '12px',
     marginTop: '1rem',
-    color: '#526d82',
-    fontSize: '0.95rem',
-    fontStyle: 'italic'
+    color: '#856404',
+    fontSize: '1rem',
+    fontWeight: '500',
+    lineHeight: '1.4'
   };
 
-  const resultStyle = {
-    background: showResult && selectedAnswer === currentQuestion.correct 
-      ? 'rgba(46, 204, 113, 0.2)' 
-      : 'rgba(231, 76, 60, 0.2)',
-    padding: '1rem',
-    borderRadius: '12px',
-    marginTop: '1rem',
-    textAlign: 'center',
-    fontSize: '1.1rem',
+  const difficultyBadgeStyle = {
+    position: 'absolute',
+    top: '1rem',
+    right: '1rem',
+    background: currentQuestion?.difficulty === 'easy' 
+      ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'
+      : currentQuestion?.difficulty === 'medium'
+      ? 'linear-gradient(135deg, #ffc107 0%, #fd7e14 100%)'
+      : 'linear-gradient(135deg, #dc3545 0%, #e74c3c 100%)',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '20px',
+    fontSize: '0.8rem',
     fontWeight: '600',
-    color: showResult && selectedAnswer === currentQuestion.correct ? '#27ae60' : '#e74c3c'
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
   };
 
   return (
-    <>
-      <Navbar />
-      <div style={containerStyle}>
-        <div style={flashcardStyle}>
-          {/* Header */}
-          <div style={headerStyle}>
-            <div style={progressStyle}>
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </div>
-            <div style={streakStyle}>
-              🔥 Streak: {streak}
-            </div>
+    <div style={containerStyle}>
+      <div style={flashcardStyle}>
+        <div style={difficultyBadgeStyle}>
+          {currentQuestion?.difficulty || 'Easy'}
+        </div>
+
+        {/* Header */}
+        <div style={headerStyle}>
+          <div style={timerStyle}>
+            ⏱️ {formatTime(timeLeft)}
           </div>
-
-          {/* Question */}
-          <div style={questionStyle}>
-            {currentQuestion.question}
+          <div style={progressStyle}>
+            Question {currentQuestionIndex + 1} of {questions.length}
           </div>
-
-          {/* Options */}
-          <div style={optionsContainerStyle}>
-            {currentQuestion.options.map((option, index) => (
-              <div
-                key={index}
-                style={optionStyle(index)}
-                onClick={() => !showResult && handleAnswerSelect(index)}
-              >
-                {String.fromCharCode(65 + index)}. {option}
-                {showResult && index === currentQuestion.correct && " ✓"}
-                {showResult && index === selectedAnswer && index !== currentQuestion.correct && " ✗"}
-              </div>
-            ))}
+          <div style={streakStyle}>
+            🔥 Streak: {streak}
           </div>
+        </div>
 
-          {/* Hint */}
-          {showHint && (
-            <div style={hintStyle}>
-              💡 Hint: {currentQuestion.hint}
-            </div>
-          )}
-
-          {/* Result */}
-          {showResult && (
-            <div style={resultStyle}>
-              {selectedAnswer === currentQuestion.correct 
-                ? "🎉 Correct! Well done!" 
-                : `❌ Incorrect. The correct answer is ${String.fromCharCode(65 + currentQuestion.correct)}.`}
-            </div>
-          )}
-
-          {/* Buttons */}
-          <div style={buttonContainerStyle}>
-            {!showResult ? (
-              <>
-                {currentQuestion.difficulty !== 'easy' && !showHint && (
-                  <button 
-                    style={secondaryButtonStyle}
-                    onClick={handleShowHint}
-                  >
-                    💡 Show Hint
-                  </button>
-                )}
-                <button 
-                  style={primaryButtonStyle}
-                  onClick={handleSubmitAnswer}
-                >
-                  Submit Answer
-                </button>
-              </>
-            ) : (
-              <button 
-                style={primaryButtonStyle}
-                onClick={handleNextQuestion}
-              >
-                {isLastQuestion ? "Finish Session" : "Next Question"}
-              </button>
+        {/* Flashcard */}
+        {!showAnswer ? (
+          <div style={cardFrontStyle}>
+            <h2 style={questionStyle}>
+              {currentQuestion?.question}
+            </h2>
+          </div>
+        ) : (
+          <div style={cardBackStyle}>
+            <h3 style={answerStyle}>
+              Answer: {currentQuestion?.options[currentQuestion?.correct]}
+            </h3>
+            {currentQuestion?.explanation && (
+              <p style={explanationStyle}>
+                {currentQuestion.explanation}
+              </p>
             )}
           </div>
+        )}
+
+        {/* Hint */}
+        {showHint && currentQuestion?.hint && (
+          <div style={hintStyle}>
+            💡 <strong>Hint:</strong> {currentQuestion.hint}
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div style={buttonContainerStyle}>
+          {!showAnswer ? (
+            <>
+              {currentQuestion?.difficulty === 'hard' && !showHint && (
+                <button 
+                  style={secondaryButtonStyle}
+                  onClick={handleShowHint}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(157, 178, 191, 0.5)';
+                    e.target.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'rgba(157, 178, 191, 0.3)';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  💡 Show Hint
+                </button>
+              )}
+              <button 
+                style={primaryButtonStyle}
+                onClick={handleShowAnswer}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #1e2a3a 0%, #455a6b 100%)';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #27374d 0%, #526d82 100%)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                🔍 Show Answer
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                style={successButtonStyle}
+                onClick={handleMarkCorrect}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #218838 0%, #1e7e34 100%)';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                ✅ I Got It Right
+              </button>
+              <button 
+                style={dangerButtonStyle}
+                onClick={handleMarkIncorrect}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #c82333 0%, #bd2130 100%)';
+                  e.target.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #dc3545 0%, #e74c3c 100%)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                ❌ I Got It Wrong
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Progress Bar */}
-        <div style={{
-          width: '100%',
-          maxWidth: '800px',
-          height: '8px',
-          background: 'rgba(255, 255, 255, 0.3)',
-          borderRadius: '4px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            height: '100%',
-            background: 'linear-gradient(90deg, #27374d 0%, #526d82 100%)',
-            width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`,
-            transition: 'width 0.3s ease'
-          }}></div>
+        {/* Exit Button */}
+        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <button 
+            style={{
+              ...secondaryButtonStyle,
+              fontSize: '0.9rem',
+              padding: '0.8rem 1.5rem'
+            }}
+            onClick={handleBackToDashboard}
+          >
+            🏠 Back to Dashboard
+          </button>
         </div>
       </div>
-      <Footer />
-    </>
+
+      {/* Progress Bar */}
+      <div style={{
+        width: '100%',
+        maxWidth: '900px',
+        height: '8px',
+        background: 'rgba(255, 255, 255, 0.3)',
+        borderRadius: '4px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          height: '100%',
+          background: 'linear-gradient(90deg, #27374d 0%, #526d82 50%, #9db2bf 100%)',
+          width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`,
+          transition: 'width 0.3s ease'
+        }}></div>
+      </div>
+
+      <style>{`
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
+    </div>
   );
 }
 
